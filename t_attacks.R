@@ -76,22 +76,38 @@ attacks.US.bar.ex911.2014 <- attacks.US.bar.ex911[1:13,]
 terr.v.lightning <- merge(attacks.US.bar.ex911.2014, lightning.ex911, by = "year", all.x = T)
 terr.v.lightning <- select(terr.v.lightning, year, killed, deaths)
 names(terr.v.lightning) <- c("year", "terror_deaths", "lightning_deaths")
+terr.v.lightning.melt <- melt(terr.v.lightning, id = "year", variable.name = "death_type", value.name = "count")
+
 #Lightning v bees v terrorism
 setkey(otherdeaths, death.code)
 hornwaspbees <- otherdeaths["X23"]
 hornwaspbees.ex911 <- hornwaspbees[2:14]
 
-terr.v.bees <- merge(attacks.US.bar.ex911.2014, hornwaspbees.ex911, by = "year", all.x = T)
-terr.v.bees <- select(terr.v.bees, year, killed, deaths)
-names(terr.v.bees) <- c("year", "terror_deaths", "bee_deaths")
-terr.v.bees.melt <- melt(terr.v.bees, id = "year", variable.name = "death_type", value.name = "count")
+terr.v.lightning.bees <- merge(terr.v.lightning, hornwaspbees.ex911, by = "year", all.x = T)
+terr.v.lightning.bees <- select(terr.v.lightning.bees, year, terror_deaths, lightning_deaths, deaths)
+names(terr.v.lightning.bees) <- c("year", "terror_deaths", "lightning_deaths", "bee_deaths")
+terr.v.lightning.bees.melt <- melt(terr.v.lightning.bees, id = "year", variable.name = "death_type", value.name = "count")
   
-ggplot(terr.v.bees.melt, aes(x = year, y = count, fill = death_type)) + 
+##Deaths over time
+ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) + 
   geom_bar(stat = "identity", width=0.7, position = position_dodge()) + 
   theme_minimal() +
   geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
   scale_fill_brewer(palette = "Paired")
 
+##Death sums
+terr.lightning.bees.sumdeath <- terr.v.lightning.bees.melt[,sum(count), by = death_type]
+names(terr.lightning.bees.sumdeath) <- c("death_type", "count")
+
+##Reorders so that order in chart is correct
+terr.lightning.bees.sumdeath <- terr.lightning.bees.sumdeath[order(terr.lightning.bees.sumdeath$count)]
+
+
+ggplot(terr.lightning.bees.sumdeath[order(terr.lightning.bees.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
 
 #Facet wrap all other deaths
 ggplot(otherdeaths, aes(x = year, y = deaths)) + geom_bar(stat = "identity") + 
