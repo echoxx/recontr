@@ -1,4 +1,4 @@
-setwd("~/Google_Drive2/Reconsider articles/2016-07 Risk & terrorism")
+setwd("~/Google_Drive2/Reconsider/2016-07_Risk_Ter")
 
 
 #Pre-processing
@@ -7,10 +7,18 @@ library(dplyr)
 library(ggplot2)
 library(reshape2)
 
+#Load terrorist attacks
 attacks <- read.csv("attacks_data.csv")
 names(attacks) <- c("ID", "date", "country", "city", "killed", "injured", "description")
 attacks$date <- as.Date(attacks$date)
 attacks <- data.table(attacks)
+
+#load other deaths
+otherdeaths <- read.table("Deaths_1999-2014.txt", sep = "\t", header = T)
+otherdeaths <- data.table(otherdeaths)
+otherdeaths <- otherdeaths[otherdeaths$Notes != "Total",]
+otherdeaths[, c("Notes", "Year.Code") := NULL]
+names(otherdeaths) <- c("cause.death", "death.code", "year", "deaths", "population", "crude.rate")
 
 #Attacks by country
 attacks.bycountry <- attacks[order(attacks[,c(country,date)]), .(ID, date, country, city, killed, injured)]
