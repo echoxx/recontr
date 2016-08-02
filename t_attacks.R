@@ -60,6 +60,13 @@ setkey(homicides, year)
 homicides.02.14 <- homicides[J(2002:2014), sum(deaths), by = year]
 
 
+#Load top causes of death
+topcauses <- data.table(read.csv("topcausesUS.csv", stringsAsFactors = FALSE))
+topcauses[,AADR:=NULL]
+setkey(topcauses, CAUSE_NAME)
+top5causes <- topcauses[c("Diseases of Heart", "Cancer", "CLRD", "Unintentional Injuries", "Stroke")]
+top5causes.0214 <- top5causes[YEAR > 2001]
+
 ### 3. PLOTS ###
 
 #Terrorism deaths - US incl 911
@@ -152,8 +159,38 @@ ggplot(terr.lightning.bees.hom.sumdeath[order(terr.lightning.bees.hom.sumdeath$c
   geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
   scale_fill_brewer(palette = "Paired")
 
-#Top causes of death
-terr.lightning.bees.hom.sumdeath
+#Top causes of death (1 yr top 5 vs 12 yrs others)
+top5.14 <- top5causes[,tail(DEATHS, n = 1), by = CAUSE_NAME]
+names(top5.14) <- c("death_type", "count")
+all.top5.14 <- full_join(terr.lightning.bees.hom.sumdeath, top5.14)
+all.top5.14 <- all.top52014[order(all.top5.14$count),]
+all.top5.14$death_type <- factor(all.top5.14$death_type, 
+                                  levels = c("Diseases of Heart", "Cancer", "CLRD", 
+                                             "Unintentional Injuries", "Stroke", "homicides", 
+                                             "bee_deaths", "lightning_deaths", "terror_deaths"))
+
+
+ggplot(all.top52014[order(all.top5.14$count),], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
+
+#Top causes of death (12 yrs all)
+top5.0214 <- top5causes.0214[,sum(DEATHS), by = CAUSE_NAME]
+names(top5.0214) <- c("death_type", "count")
+all.top5.0214 <- full_join(terr.lightning.bees.hom.sumdeath, top5.0214)
+all.top5.0214 <- all.top5.0214[order(all.top5.0214$count),]
+all.top5.0214$death_type <- factor(all.top5.0214$death_type, 
+                                 levels = c("Diseases of Heart", "Cancer", "CLRD", 
+                                            "Unintentional Injuries", "Stroke", "homicides", 
+                                            "bee_deaths", "lightning_deaths", "terror_deaths"))
+
+ggplot(all.top5.0214[order(all.top5.0214$count),], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
 
 
 #Facet wrap all other deaths
