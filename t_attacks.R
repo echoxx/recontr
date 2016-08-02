@@ -1,29 +1,20 @@
 setwd("~/Google_Drive2/Reconsider/2016-07_Risk_Ter")
 
 
-#Pre-processing
+### 1. Pre-processing ####
 library(data.table)
 library(dplyr) 
 library(ggplot2)
 library(reshape2)
 
+### 2. Load & clea process data ###
 #Load terrorist attacks
 attacks <- read.csv("attacks_data.csv")
 names(attacks) <- c("ID", "date", "country", "city", "killed", "injured", "description")
 attacks$date <- as.Date(attacks$date)
 attacks <- data.table(attacks)
 
-#Load other deaths
-otherdeaths <- read.table("Deaths_1999-2014.txt", sep = "\t", header = T, stringsAsFactors = F)
-otherdeaths <- data.table(otherdeaths)
-otherdeaths <- otherdeaths[otherdeaths$Notes != "Total",]
-otherdeaths[, c("Notes", "Year.Code") := NULL]
-names(otherdeaths) <- c("cause.death", "death.code", "year", "deaths", "population", "crude.rate")
-keep_codes <- c("X23", "X33", "X40", "X41", "X42", "X44", "X45", "X46", "X47", "X49")
-otherdeaths <- otherdeaths[death.code %in% c("X23", "X33", "X40", "X41", "X42", "X44", "X45", "X46", "X47", "X49")]
-otherdeaths <- otherdeaths[year %in% 2001:2014]
-
-#Attacks by country
+#Terrorism - Attacks by country
 attacks.bycountry <- attacks[order(attacks[,c(country,date)]), .(ID, date, country, city, killed, injured)]
 attacks.bycountry <- attacks.bycountry[, .(killed = sum(killed), injured = sum(injured)), by = country]
 
@@ -31,7 +22,7 @@ attacks.bycountry <- attacks.bycountry[, .(killed = sum(killed), injured = sum(i
 attacks.US <- attacks[which(country == "USA"),]
 #attacks.US.ex911 <- attacks.US[format.Date(attacks.US$date, "%y") != "01",]
 
-#Create data table with yearly metrics
+#Terrorism - Create data table with yearly metrics
 US.fat <- numeric()
 US.inj <- numeric()
 tempcount <- 2001
@@ -48,7 +39,29 @@ attacks.US.bar <- data.table(year = 2001:2016,
 
 attacks.US.bar.ex911 <-  attacks.US.bar[year > 2001]
 
-##Plots
+#Load other deaths
+otherdeaths <- read.table("Deaths_1999-2014.txt", sep = "\t", header = T, stringsAsFactors = F)
+otherdeaths <- data.table(otherdeaths)
+otherdeaths <- otherdeaths[otherdeaths$Notes != "Total",]
+otherdeaths[, c("Notes", "Year.Code") := NULL]
+names(otherdeaths) <- c("cause.death", "death.code", "year", "deaths", "population", "crude.rate")
+keep_codes <- c("X23", "X33", "X40", "X41", "X42", "X44", "X45", "X46", "X47", "X49")
+otherdeaths <- otherdeaths[death.code %in% c("X23", "X33", "X40", "X41", "X42", "X44", "X45", "X46", "X47", "X49")]
+otherdeaths <- otherdeaths[year %in% 2001:2014]
+
+#Load homicides
+homicides <- read.table("homicides.txt", sep = "\t", header = T, stringsAsFactors = F)
+homicides <- data.table(homicides)
+homicides[, c("Notes", "Year.Code") := NULL]
+names(homicides) <- c("cause.death", "death.code", "year", "deaths", "population", "crude.rate")
+setkey(homicides, death.code)
+homicides <- homicides[!c("U01.1", "U01.2", "U01.4")]   #Remove terrorist attacks
+setkey(homicides, year)
+homicides.02.14 <- homicides[J(2002:2014), sum(deaths), by = year]
+
+
+### 3. PLOTS ###
+
 #Terrorism deaths - US incl 911
 ggplot(attacks.US.bar, aes(x = year, y = killed)) + geom_bar(stat = "identity", width=0.7, fill="steelblue") + 
   geom_text(aes(label=killed), vjust=-0.3, size=3.5)
@@ -98,16 +111,50 @@ ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) 
 ##Death sums
 terr.lightning.bees.sumdeath <- terr.v.lightning.bees.melt[,sum(count), by = death_type]
 names(terr.lightning.bees.sumdeath) <- c("death_type", "count")
+terr.lightning.bees.sumdeath.2016 <- terr.lightning.bees.sumdeath
+terr.lightning.bees.sumdeath.2016$count[1] <- sum(attacks.US.bar.ex911$killed)
 
-##Reorders so that order in chart is correct
-terr.lightning.bees.sumdeath <- terr.lightning.bees.sumdeath[order(terr.lightning.bees.sumdeath$count)]
-
-
+##Death sums terror, lightning, bees (Excludes 2015-2016)
 ggplot(terr.lightning.bees.sumdeath[order(terr.lightning.bees.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
   geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
   theme_minimal() + 
   geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
   scale_fill_brewer(palette = "Paired")
+
+##Death sums terror, lightning, bees (Includes 2015-2016)
+ggplot(terr.lightning.bees.sumdeath.2016[order(terr.lightning.bees.sumdeath.2016$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
+
+##Death sums terror, lightning, bees, homicide (Includes 2015-2016)
+terr.v.lightning.bees.hom <- merge(terr.v.lightning.bees, homicides.02.14, by = "year", all.x = T)
+names(terr.v.lightning.bees.hom)  <- c("year", "terror_deaths", "lightning_deaths", "bee_deaths", "homicides")
+terr.v.lightning.bees.hom.melt <- melt(terr.v.lightning.bees.hom, id = "year", variable.name = "death_type", value.name = "count")
+terr.lightning.bees.hom.sumdeath <- terr.v.lightning.bees.hom.melt[,sum(count), by = death_type]
+names(terr.lightning.bees.hom.sumdeath) <- c("death_type", "count")
+
+#One year of homicide
+terr.lightning.bees.hom.sumdeath.2014 <- terr.lightning.bees.hom.sumdeath
+terr.lightning.bees.hom.sumdeath.2014$count[4] <- terr.v.lightning.bees.hom$homicides[13]
+
+ggplot(terr.lightning.bees.hom.sumdeath.2014[order(terr.lightning.bees.hom.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
+
+#All years of homicides
+ggplot(terr.lightning.bees.hom.sumdeath[order(terr.lightning.bees.hom.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+  geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
+  theme_minimal() + 
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.6, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired")
+
+#Top causes of death
+terr.lightning.bees.hom.sumdeath
+
 
 #Facet wrap all other deaths
 ggplot(otherdeaths, aes(x = year, y = deaths)) + geom_bar(stat = "identity") + 
