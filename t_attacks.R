@@ -81,7 +81,7 @@ ggplot(attacks.US.bar, aes(x = year, y = killed)) + geom_bar(stat = "identity", 
         axis.text.x = element_text(angle = 90),
         panel.grid.minor = element_blank(), panel.grid.major = element_blank())
 
-#Terrorism deaths - US, excl 911
+#Figure 1 - Terrorism deaths - US, excl 911
 ggplot(attacks.US.bar.ex911, aes(x = year, y = killed)) + geom_bar(stat = "identity", width=0.7, fill="steelblue") + 
   geom_text(aes(label=killed), vjust=-0.2, hjust = 0.5, color="black", size = 3) + 
   theme_minimal() +
@@ -90,18 +90,9 @@ ggplot(attacks.US.bar.ex911, aes(x = year, y = killed)) + geom_bar(stat = "ident
   scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90),
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
-
-ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) + 
-  geom_bar(stat = "identity", width=0.7, position = position_dodge()) + 
-  theme_minimal() +
-  geom_text(aes(label=count), vjust=-0.2, hjust = 0.5, color="black", position = position_dodge(0.9), size=3) + 
-  scale_fill_brewer(palette = "Paired", name = "Death Type") + 
-  ylab("Deaths") + xlab("Year") +
-  scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
-  theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
-        axis.text.x = element_text(angle = 90),
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Deaths from terrorism")
+  
 
 #Lightning v terrorism
 setkey(otherdeaths, death.code)
@@ -231,7 +222,7 @@ all.top5.14 <- full_join(terr.lightning.bees.hom.sumdeath, top5.14)
 all.top5.14$death_type <- c("Terrorism", "Lightning", "Bee Stings", "Homicides", "Stroke",
                               "Accidents", "CLRD", "Cancer", "Heart Disease")
 
-all.top5.14$death_type <- factor(all.top5.0214$death_type, 
+all.top5.14$death_type <- factor(all.top5.14$death_type, 
                                    levels = c("Heart Disease", "Cancer", "CLRD", 
                                               "Accidents", "Stroke", "Homicides", 
                                               "Bee Stings", "Lightning", "Terrorism"))
@@ -276,21 +267,18 @@ ggplot(all.top5.0214, aes(x = death_type, y = count,
 
 
 #########All causes in 2001 compared to terrorism
-setkey(attacks.US.bar, year)
-attacks.US.01 <- attacks.US.bar[.(2001)]
+attacks.US.01 <- attacks.US.bar[year == 2001]
 attacks.US.01[,c("death_type", "injured") := .("Terrorism", NULL)]
 names(attacks.US.01) <- c("year", "deaths", "death_type")
 setcolorder(attacks.US.01, c("year", "death_type",  "deaths"))
 
 ###hornwaspbees###
-setkey(hornwaspbees, year)
-bees.01 <- hornwaspbees[.(2001)]
+bees.01 <- hornwaspbees[year == 2001]
 bees.01 <- select(bees.01, year, cause.death, deaths)
 names(bees.01) <- c("year", "death_type", "deaths")
 bees.01$death_type[1] <- "Bee Stings"
 
-setkey(lightning, year)
-lightning.01 <- lightning[.(2001)]
+lightning.01 <- lightning[year == 2001]
 lightning.01 <- select(lightning.01, year, cause.death, deaths)
 names(lightning.01) <- c("year", "death_type", "deaths")
 lightning.01$death_type[1] <- "Lightning"
@@ -302,8 +290,8 @@ names(homicides.01) <- c("year", "deaths", "death_type")
 setcolorder(homicides.01, c("year", "death_type", "deaths"))
 homicides.01$death_type <- "Homicides"
 
-setkey(top5causes, Year)
-top5causes.01 <- top5causes[J(2001)]
+top5causes.01 <- top5causes[YEAR == 2001]
+top5causes.01 <- select(top5causes.01, YEAR, CAUSE_NAME, DEATHS)
 names(top5causes.01) <- c("year", "death_type", "deaths")
 all.01 <- rbind(top5causes.01, homicides.01, bees.01, lightning.01, attacks.US.01)
 all.01 <- all.01[order(all.01$deaths),]
@@ -327,22 +315,22 @@ ggplot(all.01, aes(x = death_type, y = deaths,
         panel.grid.minor = element_blank(), panel.grid.major = element_blank())
 
 #########Top 5 causes over time
-top5causes.ts <- top5causes
-top5causes.ts[, c("X", "X113_CAUSE_NAME", "STATE") := NULL] #double check this line
-top5causes.ts["Diseases of Heart", Death_Type := "Heart Disease"] 
-top5causes.ts["Unintentional Injuries", Death_Type := "Accidents"] 
+top5causes.ts <- select(top5causes, YEAR, CAUSE_NAME, DEATHS)
+names(top5causes.ts) <- c("year", "death_type", "deaths")
+top5causes.ts[death_type == "Diseases of Heart", death_type := "Heart Disease"] 
+top5causes.ts[death_type == "Unintentional Injuries", death_type := "Accidents"] 
 
 
-names(top5causes.ts) <- c("Year", "Death_Type", "Deaths")
-ggplot(top5causes, aes(x = Year, y = Deaths, color = Death_Type )) + 
-  geom_line() + scale_y_log10(labels = comma, name = "Deaths",
+ggplot(top5causes.ts, aes(x = year, y = deaths, color = death_type )) + 
+  geom_line() + guides(guide = guide_legend(title = "TEST")) +
+  scale_y_log10(labels = comma,
                               breaks = trans_breaks("log10", function(x) 10^x)) + 
-  scale_fill_brewer(palette = "Paired", name = "Death Type") + 
-  scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
+  
+  scale_fill_brewer(palette = "Paired") + 
   theme(axis.ticks = element_blank(), 
         axis.text.x = element_text(angle = 90), 
         panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
-  ylab("Deaths (logarithmic)")
+  ylab("Deaths (logarithmic)") + xlab("Year") 
 
 ### scale_fill_brewer options available here: http://docs.ggplot2.org/current/scale_brewer.html
 
