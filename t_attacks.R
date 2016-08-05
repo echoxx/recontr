@@ -87,7 +87,7 @@ ggplot(attacks.US.bar.ex911, aes(x = year, y = killed)) + geom_bar(stat = "ident
   theme_minimal() +
   scale_fill_brewer(palette = "Paired") + 
   ylab("Deaths") + xlab("Year") +
-  scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
+  scale_x_continuous(breaks = c(seq(from = 2002, to = 2016, by = 1))) +
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90),
         panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
@@ -102,21 +102,10 @@ attacks.US.bar.ex911.2014 <- attacks.US.bar.ex911[1:13,]
 
 terr.v.lightning <- merge(attacks.US.bar.ex911.2014, lightning.ex911, by = "year", all.x = T)
 terr.v.lightning <- select(terr.v.lightning, year, killed, deaths)
-names(terr.v.lightning) <- c("year", "terror_deaths", "lightning_deaths")
+names(terr.v.lightning) <- c("year", "Terrorism", "Lightning")
 terr.v.lightning.melt <- melt(terr.v.lightning, id = "year", variable.name = "death_type", value.name = "count")
 
-#Lightning v bees v terrorism
-setkey(otherdeaths, death.code)
-hornwaspbees <- otherdeaths["X23"]
-hornwaspbees.ex911 <- hornwaspbees[2:14]
-
-terr.v.lightning.bees <- merge(terr.v.lightning, hornwaspbees.ex911, by = "year", all.x = T)
-terr.v.lightning.bees <- select(terr.v.lightning.bees, year, terror_deaths, lightning_deaths, deaths)
-names(terr.v.lightning.bees) <- c("year", "Terrorism", "Lightning", "Bee Stings")
-terr.v.lightning.bees.melt <- melt(terr.v.lightning.bees, id = "year", variable.name = "death_type", value.name = "count")
-  
-##Deaths over time
-ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) + 
+ggplot(terr.v.lightning.melt, aes(x = year, y = count, fill = death_type)) + 
   geom_bar(stat = "identity", width=0.7, position = position_dodge()) + 
   theme_minimal() +
   geom_text(aes(label=count), vjust=-0.2, hjust = 0.5, color="black", position = position_dodge(0.9), size=3) + 
@@ -125,7 +114,31 @@ ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) 
   scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90),
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Deaths from terrorism & lightning")
+
+#Lightning v bees v terrorism
+setkey(otherdeaths, death.code)
+hornwaspbees <- otherdeaths["X23"]
+hornwaspbees.ex911 <- hornwaspbees[2:14]
+
+terr.v.lightning.bees <- merge(terr.v.lightning, hornwaspbees.ex911, by = "year", all.x = T)
+terr.v.lightning.bees <- select(terr.v.lightning.bees, year, Terrorism, Lightning, deaths)
+names(terr.v.lightning.bees) <- c("year", "Terrorism", "Lightning", "Bee Stings")
+terr.v.lightning.bees.melt <- melt(terr.v.lightning.bees, id = "year", variable.name = "death_type", value.name = "count")
+  
+##Deaths over time
+ggplot(terr.v.lightning.bees.melt, aes(x = year, y = count, fill = death_type)) + 
+  geom_bar(stat = "identity", width=0.7, position = position_dodge()) + 
+  theme_minimal() +
+  geom_text(aes(label=count), vjust=-0.2, hjust = 0.7, color="black", position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "spectral", name = "Death Type") + 
+  ylab("Deaths") + xlab("Year") +
+  scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
+  theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
+        axis.text.x = element_text(angle = 90),
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Deaths from terrorism, lightning & bee stings")
 
 
 ##Death sums
@@ -148,7 +161,8 @@ ggplot(terr.lightning.bees.sumdeath[order(terr.lightning.bees.sumdeath$count)], 
   scale_fill_brewer(palette = "Paired", name = "Death Type") +
     theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
           axis.text.x = element_text(angle = 90), 
-          panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+          panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Deaths from terrorism, lightning & bee stings (total)")
   
 
 ##Death sums terror, lightning, bees (Includes 2015-2016)
@@ -165,7 +179,8 @@ ggplot(terr.lightning.bees.sumdeath.2016[order(terr.lightning.bees.sumdeath.2016
   scale_fill_brewer(palette = "Paired", name = "Death Type") + 
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90), 
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Deaths from terrorism(02-16), lightning & bee stings (02-14)")
 
 
 #########Death sums terror, lightning, bees, homicide (Includes 2015-2016)
@@ -176,15 +191,15 @@ terr.lightning.bees.hom.sumdeath <- terr.v.lightning.bees.hom.melt[,sum(count), 
 names(terr.lightning.bees.hom.sumdeath) <- c("death_type", "count")
 
 #########One year of homicide
-terr.lightning.bees.hom.sumdeath.2014 <- terr.lightning.bees.hom.sumdeath
-terr.lightning.bees.hom.sumdeath.2014$count[4] <- terr.v.lightning.bees.hom$homicides[13]
+terr.lightning.bees.hom.sumdeath$count[1] <- sum(attacks.US.bar.ex911$killed)
+terr.lightning.bees.hom.sumdeath$count[4] <- terr.v.lightning.bees.hom$homicides[13]
 
-terr.lightning.bees.hom.sumdeath.2014$death_type <- c("Terrorism", "Lightning", 
-                                                      "Bee Stings", "Homicides")
-terr.lightning.bees.hom.sumdeath.2014$death_type <- factor(terr.lightning.bees.hom.sumdeath.2014$death_type, 
-                                 levels = c("Terrorism", "Lightning", "Bee Stings", "Homicides"))
+terr.lightning.bees.hom.sumdeath$death_type <- c("Terrorism (2002-2016)", "Lightning (2002-2014)", 
+                                                      "Bee Stings (2002-2014)", "Homicides (2014)")
+terr.lightning.bees.hom.sumdeath$death_type <- factor(terr.lightning.bees.hom.sumdeath$death_type, 
+                                 levels = c("Terrorism (2002-2016)", "Lightning (2002-2014)", "Bee Stings (2002-2014)", "Homicides (2014)"))
 
-ggplot(terr.lightning.bees.hom.sumdeath.2014[order(terr.lightning.bees.hom.sumdeath$count)], 
+ggplot(terr.lightning.bees.hom.sumdeath[order(terr.lightning.bees.hom.sumdeath$count)], 
        aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
   geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
   theme_minimal() + 
@@ -194,15 +209,19 @@ ggplot(terr.lightning.bees.hom.sumdeath.2014[order(terr.lightning.bees.hom.sumde
   scale_fill_brewer(palette = "Paired", name = "Death Type") + 
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90), 
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
+  ggtitle("Deaths: Terrorism, Lightning, Bees, Homicides")
 
 #########All years of homicides
-terr.lightning.bees.hom.sumdeath$death_type <- c("Terrorism", "Lightning", 
-                                                      "Bee Stings", "Homicides")
-terr.lightning.bees.hom.sumdeath$death_type <- factor(terr.lightning.bees.hom.sumdeath$death_type, 
-                                                           levels = c("Terrorism", "Lightning", "Bee Stings", "Homicides"))
+terr.lightning.bees.hom.sumdeath.16 <- terr.lightning.bees.hom.sumdeath
+terr.lightning.bees.hom.sumdeath.16$count[4] <- homicides.02.14[,sum(V1)]
 
-ggplot(terr.lightning.bees.hom.sumdeath[order(terr.lightning.bees.hom.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
+terr.lightning.bees.hom.sumdeath.16$death_type <- c("Terrorism (2002-2016)", "Lightning (2002-2014)", 
+                                                      "Bee Stings (2002-2014)", "Homicides (2002-2014)")
+terr.lightning.bees.hom.sumdeath.16$death_type <- factor(terr.lightning.bees.hom.sumdeath.16$death_type, 
+                                                           levels = c("Terrorism (2002-2016)", "Lightning (2002-2014)", "Bee Stings (2002-2014)", "Homicides (2002-2014)"))
+
+ggplot(terr.lightning.bees.hom.sumdeath.16[order(terr.lightning.bees.hom.sumdeath$count)], aes(x = death_type, y = count, order = death_type, fill = death_type)) + 
   geom_bar(stat = "identity", width = 0.7, position = position_dodge()) + 
   theme_minimal() + 
   geom_text(aes(label = comma ( count )), vjust=-0.2, hjust = 0.6, 
@@ -211,14 +230,15 @@ ggplot(terr.lightning.bees.hom.sumdeath[order(terr.lightning.bees.hom.sumdeath$c
   scale_fill_brewer(palette = "Paired", name = "Death Type") +
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
       axis.text.x = element_text(angle = 90), 
-      panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+      panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Terrorism, Lightning, Bees, Homicides")
 
 
 #########Top causes of death (1 yr top 5 vs 12 yrs others)
 top5.14 <- top5causes[,tail(DEATHS, n = 1), by = CAUSE_NAME]
 names(top5.14) <- c("death_type", "count")
 top5.14 <- top5.14[order(top5.14$count)]
-all.top5.14 <- full_join(terr.lightning.bees.hom.sumdeath, top5.14)
+all.top5.14 <- full_join(terr.lightning.bees.hom.sumdeath.16, top5.14)
 all.top5.14$death_type <- c("Terrorism", "Lightning", "Bee Stings", "Homicides", "Stroke",
                               "Accidents", "CLRD", "Cancer", "Heart Disease")
 
@@ -237,12 +257,13 @@ ggplot(all.top5.14, aes(x = death_type, y = count,
   scale_fill_brewer(palette = "Paired", name = "Death Type") + 
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90), 
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Top 5 causes of death (1yr v 12yrs)")
 
 #########Top causes of death (12 yrs all)
 top5.0214 <- top5causes.0214[,sum(DEATHS), by = CAUSE_NAME]
 names(top5.0214) <- c("death_type", "count")
-all.top5.0214 <- full_join(terr.lightning.bees.hom.sumdeath, top5.0214)
+all.top5.0214 <- full_join(terr.lightning.bees.hom.sumdeath.16, top5.0214)
 all.top5.0214 <- all.top5.0214[order(all.top5.0214$count),]
 all.top5.0214$death_type <- c("Terrorism", "Lightning", "Bee Stings", "Homicides", "Accidents",
                               "CLRD", "Stroke", "Cancer", "Heart Disease")
@@ -263,7 +284,8 @@ ggplot(all.top5.0214, aes(x = death_type, y = count,
   scale_fill_brewer(palette = "Paired", name = "Death Type") + 
   theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
         axis.text.x = element_text(angle = 90), 
-        panel.grid.minor = element_blank(), panel.grid.major = element_blank())
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+  ggtitle("Top 5 causes of death (comparable years)")
 
 
 #########All causes in 2001 compared to terrorism
@@ -322,17 +344,37 @@ top5causes.ts[death_type == "Unintentional Injuries", death_type := "Accidents"]
 
 
 ggplot(top5causes.ts, aes(x = year, y = deaths, color = death_type )) + 
-  geom_line() + guides(guide = guide_legend(title = "TEST")) +
+  geom_line() +
   scale_y_log10(labels = comma,
-                              breaks = trans_breaks("log10", function(x) 10^x)) + 
-  
-  scale_fill_brewer(palette = "Paired") + 
+                              breaks = trans_breaks("log10", function(x) 10^x)) +
+  scale_fill_brewer(palette = "BrBG") + 
+  scale_x_continuous(breaks = c(seq(from = 2002, to = 2014, by = 1))) +
   theme(axis.ticks = element_blank(), 
         axis.text.x = element_text(angle = 90), 
         panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
-  ylab("Deaths (logarithmic)") + xlab("Year") 
+  ylab("Deaths (logarithmic)") + xlab("Year") + 
+  theme_minimal() + 
+  ggtitle("Top 5 causes of death over time") 
+
 
 ### scale_fill_brewer options available here: http://docs.ggplot2.org/current/scale_brewer.html
+
+#########Attacks by country
+attacks.bycountry.top10 <- attacks.bycountry[order(-attacks.bycountry$killed)][1:10]
+names(attacks.bycountry.top10) <- c("Country", "Deaths", "Injured")
+
+ggplot(attacks.bycountry.top10, aes(x = Country, y = Deaths)) + 
+  geom_bar(stat = "identity") + 
+  theme_minimal() + 
+  geom_text(aes(label = comma(Deaths) ), vjust=-0.2, hjust = 0.5, color="black", 
+            position = position_dodge(0.9), size=3) + 
+  scale_fill_brewer(palette = "Paired", name = "Death Type") + 
+  theme(axis.ticks = element_blank(), axis.text.y = element_blank(), 
+        axis.text.x = element_text(angle = 90), 
+        panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
+  ggtitle("Attacks from 2001 - Present, by country (top 10)")
+  
+
 
 
 
